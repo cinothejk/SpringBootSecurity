@@ -2,8 +2,12 @@ package com.cino.SpringBootSecurity.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.Customizer;
 
@@ -15,9 +19,13 @@ public class SecurityConfiguration {
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 			.authorizeHttpRequests(authConfig -> {
-				authConfig.requestMatchers("/").permitAll();
-				authConfig.requestMatchers("/user/**").authenticated();
-				authConfig.requestMatchers("/admin/**").denyAll();
+				//authConfig.requestMatchers("/").permitAll();
+				//authConfig.requestMatchers("/user/**").authenticated();
+				//authConfig.requestMatchers("/admin/**").denyAll();
+				authConfig.requestMatchers(HttpMethod.GET, "/").permitAll();
+				authConfig.requestMatchers(HttpMethod.GET, "/user").hasRole("USER");
+				authConfig.requestMatchers(HttpMethod.GET, "/admin").hasRole("ADMIN");
+				authConfig.anyRequest().authenticated();
 				
 			})
 			.formLogin(Customizer.withDefaults()) // Login with browser and Form
@@ -26,4 +34,19 @@ public class SecurityConfiguration {
 	}
 	
 
+	@Bean
+	UserDetailsService userDetailsService() {
+		var admin = User.builder()
+				.username("Willy De Keyser")
+				.password("{noop}password")
+				.roles("USER", "ADMIN")
+				.build();
+		var user = User.builder()
+				.username("Ken De Keyser")
+				.password("{noop}password")
+				.roles("USER")
+				.build();
+		return new InMemoryUserDetailsManager(admin, user);
+	}
+	
 }
