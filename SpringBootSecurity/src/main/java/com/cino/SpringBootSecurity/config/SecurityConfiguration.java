@@ -6,6 +6,7 @@ import javax.sql.DataSource;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
@@ -21,6 +22,76 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfiguration {
 	
+	// MULTIPLE SECURITY FILTER CHAIN
+	
+	// per i permessi su path /user
+	
+	@Bean
+	@Order(100)
+	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http
+			.securityMatcher("/user")			
+			.authorizeHttpRequests(authConfig -> {
+				authConfig.requestMatchers("/user/**")
+					.hasAnyAuthority("ROLE_ADMIN", "ROLE_USER");
+				authConfig.anyRequest().authenticated();
+			})
+			.formLogin(withDefaults());
+		return http.build();
+	}
+	
+	
+	// per i permessi su path /admin
+	
+	@Bean
+	@Order(101)
+	SecurityFilterChain securityFilterChain1(HttpSecurity http) throws Exception {
+		http
+			.securityMatcher("/admin")
+			.authorizeHttpRequests(authConfig -> {
+				authConfig.requestMatchers("/admin/**").hasAnyAuthority("ROLE_ADMIN");
+				authConfig.anyRequest().authenticated();
+			})
+			.formLogin(withDefaults());
+		return http.build();
+	}
+	
+	// per i permessi su path /
+	
+	@Bean
+	@Order(102)
+	SecurityFilterChain securityFilterChain2(HttpSecurity http) throws Exception {
+		http
+			.securityMatcher("/")
+			.authorizeHttpRequests(authConfig -> {
+				authConfig.anyRequest().permitAll();
+			})
+			.formLogin(withDefaults());
+		return http.build();
+	}
+	
+	// per i permessi su tutti gli altri path
+	// IMPORTANTE, questo va sempre messo ultimo come Order (altrimenti blocca quelli successivi)
+	
+	@Bean
+	@Order(103)
+	SecurityFilterChain securityFilterChain3(HttpSecurity http) throws Exception {
+		http
+			.authorizeHttpRequests(authConfig -> {
+				authConfig.anyRequest().denyAll();
+			})
+			.formLogin(withDefaults());
+		return http.build();
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	/*
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		
@@ -39,7 +110,7 @@ public class SecurityConfiguration {
 			.oauth2Login(withDefaults()); // Login with Google - GitHub - Facebook or .......
 		return http.build();
 		
-	}
+	} */
 	
 	
 	@Bean
