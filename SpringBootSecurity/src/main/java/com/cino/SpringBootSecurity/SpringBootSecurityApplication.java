@@ -17,22 +17,4 @@ public class SpringBootSecurityApplication {
 		SpringApplication.run(SpringBootSecurityApplication.class, args);
 	}
 
-	@Bean
-	CommandLineRunner commandLineRunner(JdbcUserDetailsManager jdbcUserDetailsManager, DataSource dataSource) {
-		return args -> {
-			UserDetails user = User.builder()
-					.username("user")
-					.password("{noop}password")
-					.roles("USER")
-					.build();
-				UserDetails admin = User.builder()
-					.username("admin")
-					.password("{noop}password")
-					.roles("USER", "ADMIN")
-					.build();
-				JdbcUserDetailsManager users = new JdbcUserDetailsManager(dataSource);
-				users.createUser(user);
-				users.createUser(admin);
-		};
-	}
 }

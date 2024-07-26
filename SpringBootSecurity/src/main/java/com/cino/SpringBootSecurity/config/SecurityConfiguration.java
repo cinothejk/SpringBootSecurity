@@ -1,26 +1,80 @@
 package com.cino.SpringBootSecurity.config;
 
+import static org.springframework.security.config.Customizer.withDefaults;
 
-import javax.sql.DataSource;
-
-import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
-import static  org.springframework.security.config.Customizer.withDefaults;
+import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
+import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-
+@SuppressWarnings("deprecation")
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
+	
+	// MY USER DETAILS SERVICE
+	
+	@Bean
+	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http
+			.authorizeHttpRequests(authConfig -> {
+				authConfig.requestMatchers(HttpMethod.GET, "/").permitAll();
+				authConfig.requestMatchers(HttpMethod.GET, "/user").hasAnyAuthority("ROLE_USER");
+				authConfig.requestMatchers(HttpMethod.GET, "/admin").hasRole("ADMIN");
+				authConfig.anyRequest().authenticated();
+			})
+			.csrf(csrf -> csrf.disable())
+			// questo si usa in alternativa al Bean sotto
+			// per esempio se voglio mettere diversi UserDetails su diverse filterChain
+			//.userDetailsService(new MyUserDetailsService())  
+			.formLogin(withDefaults()) // Login with browser and Build in Form
+			.httpBasic(withDefaults()); // Login with Insomnia or Postman and Basic Auth
+		return http.build();
+	}
+		
+	@Bean
+	UserDetailsService myUserDetailsService() {
+		return new MyUserDetailsService();
+	}
+	
+	@Bean
+	PasswordEncoder passwordEncoder() {
+		return NoOpPasswordEncoder.getInstance();
+	}
+	
+	// questi 2 bean sono gli event handler di login success e login failure
+	// qui fanno solo una stampa su console
+	
+	@Bean
+	public ApplicationListener<AuthenticationSuccessEvent> successEvent() {
+		return event -> {
+			System.err.println("Success Login " + event.getAuthentication().getClass().getName() + " - " + event.getAuthentication().getName());
+		};
+	}
+	
+	@Bean
+	public ApplicationListener<AuthenticationFailureBadCredentialsEvent> failureEvent() {
+		return event -> {
+			System.err.println("Bad Credentials Login " + event.getAuthentication().getClass().getName() + " - " + event.getAuthentication().getName());
+		};
+	}
+	
+	
+	
+	
+	
+	
+	/*-----------------------------------------------------------------------------------------------------*/
+	
+	/*
 	
 	// MULTIPLE SECURITY FILTER CHAIN
 	
@@ -85,10 +139,39 @@ public class SecurityConfiguration {
 	}
 	
 	
+	/*
+	
+	@Bean
+	JdbcUserDetailsManager jdbcUserDetailsManager(DataSource dataSource) {
+		JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
+		return jdbcUserDetailsManager;
+	}
+		
+	
+	// QUI puoi configurar qualsiasi DB
+	// non essendodci il DEFAULT_USER_SCHEMA_DLL, bisogna creare 
+	// un file.sql per creare lo schema del DB
+	@Bean
+    DataSource getDataSource() {
+		return DataSourceBuilder.create()
+				.driverClassName("org.h2.Driver")
+				.url("jdbc:h2:mem:testdb")
+				.username("sa")
+				.password("")
+				.build();
+    }	
+	
+	
+	*/
 	
 	
 	
+	/*-----------------------------------------------------------------------------------------------------*/
+
 	
+	// SINGLE SECURITY FILTER CHAIN 
+	// IN MEMORY USER DETAILS
+	// DEFAULT H2 DATA SOURCE SCHEMA
 	
 	
 	/*
@@ -113,26 +196,7 @@ public class SecurityConfiguration {
 	} */
 	
 	
-	@Bean
-	JdbcUserDetailsManager jdbcUserDetailsManager(DataSource dataSource) {
-		JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
-		return jdbcUserDetailsManager;
-	}
-		
 	
-	// QUI puoi configurar qualsiasi DB
-	// non essendodci il DEFAULT_USER_SCHEMA_DLL, bisogna creare 
-	// un file.sql per creare lo schema del DB
-	
-	@Bean
-    DataSource getDataSource() {
-		return DataSourceBuilder.create()
-				.driverClassName("org.h2.Driver")
-				.url("jdbc:h2:mem:testdb")
-				.username("sa")
-				.password("")
-				.build();
-    }	
 	
 	/*
 	@Bean
